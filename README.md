@@ -1,13 +1,13 @@
-# starte
-Starter template repository
+# Dr P's bin packer
 
-# Input
-
-A series of rectangles in 'arrival' order.
+## Input
 
 A grid size
 
-# Output
+A series of rectangles in 'arrival' order.
+
+
+## Output
 
 Rectangle position and rotation for each arrival
 
