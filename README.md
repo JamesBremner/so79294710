@@ -9,5 +9,8 @@ A series of rectangles in 'arrival' order.
 
 ## Output
 
-Rectangle position and rotation for each arrival
+for each arrival:
+
+- All arrived rectangles position and rotation
+- Moves, if any, of previous arrived rectangles.
 
