@@ -2,7 +2,7 @@
 VPATH = ./src 
 
 	# compiler include search paths
-INCS = -I./include \
+INCS = 	-I../PackEngine/src \
 	-I../windex/include \
 	-I../raven-set \
 
