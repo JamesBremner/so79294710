@@ -12,51 +12,75 @@
 
 typedef raven::pack::cItem item_t;
 
-item_t genRandom(int min, int max)
-{
-    double x = rand() % (max - min) + min;
-    double y = rand() % (max - min) + min;
-    return item_t(x, y);
-}
-
 class cGUI : public cStarterGUI
 {
 public:
-    cGUI()
-        : cStarterGUI(
-              "Starter",
-              {50, 50, 1000, 500})
-    {
-        srand(77);
-        myPack.setSize(6, 7);
-
-        myTimer = new wex::timer(fm, 500);
-        fm.events().timer(
-            [this](int id)
-            {
-                fm.update();
-            });
-        show();
-        run();
-    }
+    cGUI();
 
 private:
     wex::timer *myTimer;
     void draw(wex::shapes &S);
 
     raven::pack::cEngine myPack;
+
+    item_t genRandom(int min, int max);
+    void pack(item_t arrival);
 };
+
+cGUI::cGUI()
+    : cStarterGUI(
+          "Packer",
+          {50, 50, 1000, 500})
+{
+    srand(77);
+    myPack.setSize(6, 7);
+
+    fm.events().click(
+        [this]()
+        {
+            // start packing arrivals
+            myTimer = new wex::timer(fm, 500);
+        });
+
+    fm.events().timer(
+        [this](int id)
+        {
+            // generate random arrival
+            auto arrival = genRandom(1, 3);
+
+            // try to pack arrival
+            pack(arrival);
+
+            // update display
+            fm.update();
+        });
+
+    show();
+    run();
+}
 
 void cGUI::draw(wex::shapes &S)
 {
-    // generate random arrival
-    auto arrival = genRandom(1, 3);
+    double scale = 50;
+    int xoff = 1;
+    int yoff = 1;
+    for (const auto &rect : myPack.getPack())
+        S.rectangle(
+            cxy(scale * (rect.loc.x + xoff), scale * (rect.loc.y + yoff)),
+            cxy(scale * rect.wlh.x, scale * rect.wlh.y));
+}
 
-    // try to pack arrival
+item_t cGUI::genRandom(int min, int max)
+{
+    double x = rand() % (max - min) + min;
+    double y = rand() % (max - min) + min;
+    return item_t(x, y);
+}
+void cGUI::pack(item_t arrival)
+{
     try
     {
         myPack.pack(arrival);
-
     }
     catch (std::runtime_error &e)
     {
@@ -85,14 +109,6 @@ void cGUI::draw(wex::shapes &S)
         }
     }
     std::cout << myPack.itemCount() << " ";
-
-    double scale = 30;
-    int xoff = 1;
-    int yoff = 1;
-    for (const auto &rect : myPack.getPack())
-        S.rectangle(
-            cxy(scale * (rect.loc.x + xoff), scale * (rect.loc.y + yoff)),
-            cxy(scale * rect.wlh.x, scale * rect.wlh.y));
 }
 
 main()
