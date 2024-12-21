@@ -19,40 +19,46 @@ public:
 
 private:
     wex::timer *myTimer;
-    void draw(wex::shapes &S);
 
     raven::pack::cEngine myPack;
 
-    item_t genRandom(int min, int max);
-    void pack(item_t arrival);
+    bool fbusy;
+
+    void pack();
+    void repack();
+    void draw(wex::shapes &S);
 };
 
 cGUI::cGUI()
     : cStarterGUI(
           "Packer",
-          {50, 50, 1000, 500})
+          {50, 50, 1000, 500}),
+      fbusy(false)
 {
     srand(77);
     myPack.setSize(6, 7);
+    myPack.setSpin();
 
     fm.events().click(
         [this]()
         {
             // start packing arrivals
-            myTimer = new wex::timer(fm, 500);
+            myTimer = new wex::timer(fm, 1000);
         });
 
     fm.events().timer(
         [this](int id)
         {
-            // generate random arrival
-            auto arrival = genRandom(1, 3);
+            if (fbusy)
+                return;
+            fbusy = true;
 
-            // try to pack arrival
-            pack(arrival);
+            pack();
 
             // update display
             fm.update();
+
+            fbusy = false;
         });
 
     show();
@@ -61,54 +67,62 @@ cGUI::cGUI()
 
 void cGUI::draw(wex::shapes &S)
 {
-    double scale = 50;
+    double scale = 70;
     int xoff = 1;
     int yoff = 1;
     for (const auto &rect : myPack.getPack())
         S.rectangle(
             cxy(scale * (rect.loc.x + xoff), scale * (rect.loc.y + yoff)),
             cxy(scale * rect.wlh.x, scale * rect.wlh.y));
+    std::cout << myPack.itemCount() << " ";
 }
 
-item_t cGUI::genRandom(int min, int max)
+void cGUI::pack()
 {
-    double x = rand() % (max - min) + min;
-    double y = rand() % (max - min) + min;
-    return item_t(x, y);
-}
-void cGUI::pack(item_t arrival)
-{
+    // generate random arrival
+    item_t arrival(
+        rand() % (3 - 1) + 1,
+        rand() % (3 - 1) + 1 );
+
     try
     {
         myPack.pack(arrival);
     }
     catch (std::runtime_error &e)
     {
-        if (e.what() == "No space for item")
+        if (e.what() != std::string("No space for item"))
         {
-            // rotate
-            double temp = arrival.wlh.x;
-            arrival.wlh.x = arrival.wlh.y;
-            arrival.wlh.y = temp;
-
-            // try to pack arrival
-            try
-            {
-                myPack.pack(arrival);
-            }
-            catch (std::runtime_error &e)
-            {
-                if (e.what() == "No space for item")
-                {
-                    std::cout << "grid is full\n";
-                    return;
-                }
-                std::cout << e.what();
-                exit(1);
-            }
+            std::cout << e.what();
+            exit(1);
         }
+        wex::msgbox("Need to repack");
+        myPack.addItem(arrival);
+        repack();
     }
-    std::cout << myPack.itemCount() << " ";
+}
+
+void cGUI::repack()
+{
+    try
+    {
+        auto v_all_items = myPack.getPack();
+        std::sort(
+            v_all_items.begin(), v_all_items.end(),
+            [](const item_t &a, const item_t &b)
+            {
+                return a.volume() > b.volume();
+            });
+        myPack.setSize(6, 7);
+        myPack.setSpin();
+        for (auto &item : v_all_items)
+            myPack.pack(item);
+        std::cout << "repack succeeded\n";
+    }
+    catch (std::runtime_error &e)
+    {
+        std::cout << "repack failed\n";
+        delete myTimer;
+    }
 }
 
 main()
